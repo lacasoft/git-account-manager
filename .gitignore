@@ -1,0 +1,19 @@
+# Backups generados por GAM
+*.bak.*
+
+# Configuraciones locales
+.env
+*.local
+
+# Claude
+.claude/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

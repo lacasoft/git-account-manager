@@ -1,0 +1,36 @@
+# Template para configuración de Git por cuenta
+# Este archivo se usa como base para configuraciones específicas
+
+[user]
+    name = {{USERNAME}}
+    email = {{EMAIL}}
+
+[init]
+    defaultBranch = main
+
+[core]
+    autocrlf = input
+    editor = nano
+
+[color]
+    ui = auto
+
+[alias]
+    co = checkout
+    br = branch
+    st = status
+    ci = commit
+    lg = log --oneline --graph --all
+    unstage = reset HEAD --
+    last = log -1 HEAD
+    tree = log --graph --oneline --all
+
+[push]
+    default = simple
+    autoSetupRemote = true
+
+[fetch]
+    prune = true
+
+[merge]
+    conflictstyle = diff3

@@ -1,0 +1,118 @@
+#!/usr/bin/env bash
+
+# Git Account Manager (GAM) - CLI para gestionar múltiples cuentas de GitHub
+# Version: 1.0.0
+# Author: lacasoft
+
+set -e
+
+# Directorio base: ~/.gam si está instalado, directorio del script en modo dev
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -d "$HOME/.gam/lib" ]; then
+    GAM_HOME="$HOME/.gam"
+else
+    GAM_HOME="$SCRIPT_DIR"
+fi
+LIB_DIR="$GAM_HOME/lib"
+export TEMPLATES_DIR="$GAM_HOME/templates"
+
+# Colores
+RED=$'\033[0;31m'
+GREEN=$'\033[0;32m'
+YELLOW=$'\033[1;33m'
+BLUE=$'\033[0;34m'
+MAGENTA=$'\033[0;35m'
+CYAN=$'\033[0;36m'
+NC=$'\033[0m'
+
+# Cargar librerías
+source "$LIB_DIR/utils.sh"
+source "$LIB_DIR/ssh.sh"
+source "$LIB_DIR/account.sh"
+source "$LIB_DIR/git-config.sh"
+
+# Mostrar ayuda
+show_help() {
+    cat << EOF
+${BLUE}Git Account Manager (GAM)${NC}
+Gestión de múltiples cuentas de GitHub con SSH
+
+${GREEN}USO:${NC}
+    gam <comando> [opciones]
+
+${GREEN}COMANDOS:${NC}
+    ${YELLOW}add${NC}                    Agregar una nueva cuenta de GitHub
+    ${YELLOW}list${NC}                   Listar todas las cuentas configuradas
+    ${YELLOW}remove${NC} <nombre>        Eliminar una cuenta
+    ${YELLOW}test${NC} [nombre]          Probar conexión SSH (todas o una específica)
+    ${YELLOW}clone${NC} <cuenta> <repo>  Clonar un repositorio con la cuenta especificada
+    ${YELLOW}switch${NC} <cuenta>        Cambiar configuración Git actual (global)
+    ${YELLOW}use${NC} <ruta>             Usar configuración automática por carpeta
+    ${YELLOW}export${NC}                 Exportar configuración para backup
+    ${YELLOW}import${NC} <archivo>       Importar configuración desde backup
+    ${YELLOW}help${NC}                   Mostrar esta ayuda
+
+${GREEN}EJEMPLOS:${NC}
+    gam add                           # Agregar nueva cuenta interactivamente
+    gam add --name trabajo --email user@work.com --username workuser
+    gam list                          # Listar todas las cuentas
+    gam test personal                 # Probar conexión con cuenta personal
+    gam clone personal lacasoft/evvaApi
+    gam use /code/personal            # Configurar Git automático para carpeta
+    gam switch trabajo                # Cambiar config Git global a cuenta trabajo
+    gam export > backup-gam-\$(date +%Y%m%d).txt
+
+${GREEN}CONFIGURACIÓN:${NC}
+    Las cuentas se almacenan en ~/.ssh/config
+    Las configuraciones de Git se guardan en ~/.gitconfig-*
+    
+${CYAN}Para más información: https://github.com/lacasoft/git-account-manager${NC}
+EOF
+}
+
+# Comando principal
+main() {
+    local cmd="${1:-help}"
+    shift || true
+    
+    case "$cmd" in
+        add)
+            add_account "$@"
+            ;;
+        list)
+            list_accounts
+            ;;
+        remove)
+            remove_account "$@"
+            ;;
+        test)
+            test_connection "$@"
+            ;;
+        clone)
+            clone_repo "$@"
+            ;;
+        switch)
+            switch_git_config "$@"
+            ;;
+        use)
+            setup_auto_git_config "$@"
+            ;;
+        export)
+            export_config
+            ;;
+        import)
+            import_config "$@"
+            ;;
+        help|--help|-h)
+            show_help
+            ;;
+        *)
+            echo -e "${RED}Error: Comando desconocido '$cmd'${NC}"
+            echo "Ejecuta 'gam help' para ver los comandos disponibles"
+            exit 1
+            ;;
+    esac
+}
+
+# Ejecutar
+main "$@"

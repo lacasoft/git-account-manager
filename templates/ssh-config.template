@@ -1,0 +1,14 @@
+# Template para configuración SSH de GitHub
+# Este archivo se usa como base para nuevas cuentas
+
+# Cuenta: {{ACCOUNT_NAME}}
+Host github.com-{{ACCOUNT_NAME}}
+    HostName github.com
+    User git
+    IdentityFile {{SSH_KEY_PATH}}
+    IdentitiesOnly yes
+    # Opciones adicionales para mejorar la conexión
+    ServerAliveInterval 60
+    ServerAliveCountMax 3
+    Compression yes
+    ForwardAgent no
