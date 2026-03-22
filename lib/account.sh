@@ -29,14 +29,16 @@ add_account() {
     
     # Si no hay argumentos, modo interactivo
     if [ -z "$account_name" ]; then
-        echo -e "${BLUE}========================================${NC}"
-        echo -e "${BLUE}    Agregar nueva cuenta de GitHub      ${NC}"
-        echo -e "${BLUE}========================================${NC}"
         echo ""
-        
-        read -p "Nombre de la cuenta (ej: trabajo, freelance): " account_name
-        read -p "Email asociado a la cuenta: " email
-        read -p "Nombre de usuario en GitHub: " username
+        echo -e "${BLUE}╔══════════════════════════════════════════╗${NC}"
+        echo -e "${BLUE}║${NC}   ➕  ${CYAN}Agregar nueva cuenta de GitHub${NC}   ${BLUE}║${NC}"
+        echo -e "${BLUE}╚══════════════════════════════════════════╝${NC}"
+        echo ""
+
+        read -p "  📛  Nombre de la cuenta (ej: trabajo, freelance): " account_name
+        read -p "  📧  Email asociado a la cuenta: " email
+        read -p "  🐙  Usuario en GitHub: " username
+        echo ""
     fi
     
     # Validar
@@ -104,36 +106,46 @@ add_account() {
 
 # Listar cuentas
 list_accounts() {
-    echo -e "${BLUE}Cuentas de GitHub configuradas:${NC}"
-    echo -e "${BLUE}================================${NC}"
     echo ""
-    
+    echo -e "${BLUE}╔══════════════════════════════════════════╗${NC}"
+    echo -e "${BLUE}║${NC}   🔑  ${CYAN}Cuentas de GitHub configuradas${NC}   ${BLUE}║${NC}"
+    echo -e "${BLUE}╚══════════════════════════════════════════╝${NC}"
+    echo ""
+
     local count=0
-    
-    # Extraer cuentas del archivo SSH config
+    local account_name=""
+
     while IFS= read -r line; do
         if [[ $line =~ ^#\ Cuenta:\ (.+)$ ]]; then
-            local account_name="${BASH_REMATCH[1]}"
-            echo -e "${GREEN}📁 $account_name${NC}"
+            account_name="${BASH_REMATCH[1]}"
             count=$((count + 1))
         elif [[ $line =~ ^Host\ github.com-(.+)$ ]]; then
             local host="${BASH_REMATCH[1]}"
-            echo -e "   🔑 github.com-$host"
-            
-            # Buscar username en .gitconfig
             local git_config="$HOME/.gitconfig-$host"
+
+            echo -e "  ${GREEN}📁 ${account_name}${NC}"
+            echo -e "  ${BLUE}├─${NC} 🔑  ${YELLOW}github.com-$host${NC}"
+
             if [ -f "$git_config" ]; then
-                local user_name=$(grep "name =" "$git_config" | head -1 | sed 's/.*= //')
-                local user_email=$(grep "email =" "$git_config" | head -1 | sed 's/.*= //')
-                echo -e "   👤 $user_name <$user_email>"
+                local user_name user_email
+                user_name=$(git config --file "$git_config" user.name 2>/dev/null)
+                user_email=$(git config --file "$git_config" user.email 2>/dev/null)
+                echo -e "  ${BLUE}└─${NC} 👤  ${CYAN}$user_name${NC} <$user_email>"
+            else
+                echo -e "  ${BLUE}└─${NC} ⚠️   ${YELLOW}sin perfil Git — ejecuta: gam use <carpeta>${NC}"
             fi
             echo ""
         fi
     done < "$HOME/.ssh/config" 2>/dev/null
-    
+
     if [ $count -eq 0 ]; then
-        echo -e "${YELLOW}No hay cuentas configuradas${NC}"
-        echo "Ejecuta 'gam add' para agregar una cuenta"
+        echo -e "  ${YELLOW}⚠️  No hay cuentas configuradas${NC}"
+        echo -e "  Ejecuta ${GREEN}gam add${NC} para agregar tu primera cuenta"
+        echo ""
+    else
+        echo -e "  ${BLUE}──────────────────────────────────────────${NC}"
+        echo -e "  ${CYAN}Total: $count cuenta(s)${NC}"
+        echo ""
     fi
 }
 

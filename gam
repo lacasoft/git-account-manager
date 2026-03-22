@@ -34,39 +34,45 @@ source "$LIB_DIR/git-config.sh"
 # Mostrar ayuda
 show_help() {
     cat << EOF
-${BLUE}Git Account Manager (GAM)${NC}
-Gestión de múltiples cuentas de GitHub con SSH
 
-${GREEN}USO:${NC}
-    gam <comando> [opciones]
+${BLUE}  ██████╗  █████╗ ███╗   ███╗${NC}
+${BLUE} ██╔════╝ ██╔══██╗████╗ ████║${NC}
+${BLUE} ██║  ███╗███████║██╔████╔██║${NC}
+${BLUE} ██║   ██║██╔══██║██║╚██╔╝██║${NC}
+${BLUE} ╚██████╔╝██║  ██║██║ ╚═╝ ██║${NC}
+${BLUE}  ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝${NC}
+${CYAN}  Git Account Manager — v1.0.0${NC}
 
-${GREEN}COMANDOS:${NC}
-    ${YELLOW}add${NC}                    Agregar una nueva cuenta de GitHub
-    ${YELLOW}list${NC}                   Listar todas las cuentas configuradas
-    ${YELLOW}remove${NC} <nombre>        Eliminar una cuenta
-    ${YELLOW}test${NC} [nombre]          Probar conexión SSH (todas o una específica)
-    ${YELLOW}clone${NC} <cuenta> <repo>  Clonar un repositorio con la cuenta especificada
-    ${YELLOW}switch${NC} <cuenta>        Cambiar configuración Git actual (global)
-    ${YELLOW}use${NC} <ruta>             Usar configuración automática por carpeta
-    ${YELLOW}export${NC}                 Exportar configuración para backup
-    ${YELLOW}import${NC} <archivo>       Importar configuración desde backup
-    ${YELLOW}help${NC}                   Mostrar esta ayuda
+${BLUE}┌─────────────────────────────────────────────────────┐${NC}
+${BLUE}│${NC}  ${GREEN}USO${NC}  ${BLUE}│${NC}  gam <comando> [opciones]                      ${BLUE}│${NC}
+${BLUE}└─────────────────────────────────────────────────────┘${NC}
 
-${GREEN}EJEMPLOS:${NC}
-    gam add                           # Agregar nueva cuenta interactivamente
-    gam add --name trabajo --email user@work.com --username workuser
-    gam list                          # Listar todas las cuentas
-    gam test personal                 # Probar conexión con cuenta personal
-    gam clone personal lacasoft/evvaApi
-    gam use /code/personal            # Configurar Git automático para carpeta
-    gam switch trabajo                # Cambiar config Git global a cuenta trabajo
-    gam export > backup-gam-\$(date +%Y%m%d).txt
+${CYAN}COMANDOS${NC}
+  ${YELLOW}add${NC}     [--name X --email X --username X]   ➕  Agregar cuenta
+  ${YELLOW}list${NC}                                        📋  Listar cuentas
+  ${YELLOW}remove${NC}  <cuenta>                            🗑️   Eliminar cuenta
+  ${YELLOW}test${NC}    [cuenta]                            🔌  Probar conexión SSH
+  ${YELLOW}clone${NC}   <cuenta> <usuario/repo> [destino]  📥  Clonar repositorio
+  ${YELLOW}switch${NC}  <cuenta>                            🔄  Cambiar config Git global
+  ${YELLOW}use${NC}     <carpeta>                           📂  Git automático por carpeta
+  ${YELLOW}export${NC}                                      💾  Exportar configuración
+  ${YELLOW}import${NC}  <archivo>                           📤  Importar configuración
+  ${YELLOW}help${NC}                                        ❓  Mostrar esta ayuda
 
-${GREEN}CONFIGURACIÓN:${NC}
-    Las cuentas se almacenan en ~/.ssh/config
-    Las configuraciones de Git se guardan en ~/.gitconfig-*
-    
-${CYAN}Para más información: https://github.com/lacasoft/git-account-manager${NC}
+${CYAN}EJEMPLOS${NC}
+  gam add                                         ${BLUE}# interactivo${NC}
+  gam add --name personal --email yo@mail.com --username miuser
+  gam list
+  gam test personal
+  gam clone personal lacasoft/mi-repo
+  gam use ~/code/trabajo
+  gam switch trabajo
+  gam export > backup-gam-\$(date +%Y%m%d).txt
+
+${BLUE}──────────────────────────────────────────────────────${NC}
+${CYAN}  🌐  https://github.com/lacasoft/git-account-manager${NC}
+${BLUE}──────────────────────────────────────────────────────${NC}
+
 EOF
 }
 
