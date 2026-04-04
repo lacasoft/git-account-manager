@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 
 # Instalador de Git Account Manager
+# Funciona local (bash install.sh) y remoto (curl ... | bash)
 
 set -e
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_URL="https://github.com/lacasoft/git-account-manager"
 INSTALL_DIR="/usr/local/bin"
 GAM_HOME="$HOME/.gam"
 SCRIPT_NAME="gam"
@@ -14,12 +15,30 @@ GREEN=$'\033[0;32m'
 BLUE=$'\033[0;34m'
 YELLOW=$'\033[1;33m'
 RED=$'\033[0;31m'
+CYAN=$'\033[0;36m'
 NC=$'\033[0m'
 
-echo -e "${BLUE}========================================${NC}"
-echo -e "${BLUE}    Git Account Manager - Instalador    ${NC}"
-echo -e "${BLUE}========================================${NC}"
+# Detección de OS
+GAM_OS="linux"
+case "$(uname -s)" in Darwin*) GAM_OS="macos" ;; esac
+
 echo ""
+echo -e "${BLUE}  ██████╗  █████╗ ███╗   ███╗${NC}"
+echo -e "${BLUE} ██╔════╝ ██╔══██╗████╗ ████║${NC}"
+echo -e "${BLUE} ██║  ███╗███████║██╔████╔██║${NC}"
+echo -e "${BLUE} ██║   ██║██╔══██║██║╚██╔╝██║${NC}"
+echo -e "${BLUE} ╚██████╔╝██║  ██║██║ ╚═╝ ██║${NC}"
+echo -e "${BLUE}  ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝${NC}"
+echo -e "${CYAN}  Instalador — v1.0.0${NC}"
+echo ""
+
+# Detectar si estamos en modo local o remoto
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}" 2>/dev/null)" 2>/dev/null && pwd 2>/dev/null)" || SCRIPT_DIR=""
+IS_REMOTE=false
+
+if [ -z "$SCRIPT_DIR" ] || [ ! -f "$SCRIPT_DIR/gam" ]; then
+    IS_REMOTE=true
+fi
 
 # Verificar dependencias
 echo -e "${BLUE}Verificando dependencias...${NC}"
@@ -35,13 +54,33 @@ fi
 
 if [ ${#MISSING_DEPS[@]} -gt 0 ]; then
     echo -e "${RED}Faltan dependencias: ${MISSING_DEPS[*]}${NC}"
-    echo "Instálalas con: sudo apt install ${MISSING_DEPS[*]}"
+    if [ "$GAM_OS" = "macos" ]; then
+        echo "Instálalas con: brew install ${MISSING_DEPS[*]}"
+    else
+        echo "Instálalas con: sudo apt install ${MISSING_DEPS[*]}"
+    fi
     exit 1
 fi
 echo -e "${GREEN}✓ Todas las dependencias están instaladas${NC}"
+
+# Detectar sistema operativo
+if [ "$GAM_OS" = "macos" ]; then
+    echo -e "${GREEN}✓ Sistema detectado: macOS${NC}"
+else
+    echo -e "${GREEN}✓ Sistema detectado: Linux${NC}"
+fi
 echo ""
 
-# Verificar si tiene permisos de sudo
+# Si es instalación remota, clonar el repo primero
+if [ "$IS_REMOTE" = true ]; then
+    echo -e "${BLUE}Descargando GAM...${NC}"
+    TMPDIR=$(mktemp -d)
+    git clone --depth 1 "$REPO_URL.git" "$TMPDIR" 2>/dev/null
+    SCRIPT_DIR="$TMPDIR"
+    echo -e "${GREEN}✓ Descargado${NC}"
+fi
+
+# Verificar permisos de sudo
 if [ ! -w "$INSTALL_DIR" ]; then
     echo -e "${YELLOW}Se necesitan permisos para instalar en $INSTALL_DIR${NC}"
     SUDO="sudo"
@@ -66,31 +105,42 @@ echo -e "${GREEN}✓ Archivos instalados en $GAM_HOME${NC}"
 # Configurar autocompletado
 echo ""
 echo -e "${BLUE}Configurando autocompletado...${NC}"
-COMPLETION_FILE="$HOME/.bashrc"
-COMPLETION_SOURCE="source $GAM_HOME/completions/gam-completion.bash"
 
-if [ -f "$GAM_HOME/completions/gam-completion.bash" ]; then
-    if ! grep -q "gam-completion.bash" "$COMPLETION_FILE" 2>/dev/null; then
-        echo "" >> "$COMPLETION_FILE"
-        echo "# Git Account Manager completion" >> "$COMPLETION_FILE"
-        echo "$COMPLETION_SOURCE" >> "$COMPLETION_FILE"
-        echo -e "${GREEN}✓ Autocompletado agregado a $COMPLETION_FILE${NC}"
-        echo -e "${YELLOW}  Para usar autocompletado, ejecuta: source $COMPLETION_FILE${NC}"
+# Detectar shell del usuario
+SHELL_RC=""
+if [ -n "$ZSH_VERSION" ] || [[ "$SHELL" == */zsh ]]; then
+    SHELL_RC="$HOME/.zshrc"
+elif [ -f "$HOME/.bashrc" ]; then
+    SHELL_RC="$HOME/.bashrc"
+fi
+
+if [ -n "$SHELL_RC" ] && [ -f "$GAM_HOME/completions/gam-completion.bash" ]; then
+    COMPLETION_SOURCE="source $GAM_HOME/completions/gam-completion.bash"
+    if ! grep -q "gam-completion.bash" "$SHELL_RC" 2>/dev/null; then
+        echo "" >> "$SHELL_RC"
+        echo "# Git Account Manager completion" >> "$SHELL_RC"
+        echo "$COMPLETION_SOURCE" >> "$SHELL_RC"
+        echo -e "${GREEN}✓ Autocompletado agregado a $SHELL_RC${NC}"
     else
         echo -e "${GREEN}✓ Autocompletado ya configurado${NC}"
     fi
 fi
 
+# Limpiar si fue instalación remota
+if [ "$IS_REMOTE" = true ] && [ -n "$TMPDIR" ]; then
+    rm -rf "$TMPDIR"
+fi
+
 echo ""
-echo -e "${GREEN}========================================${NC}"
-echo -e "${GREEN}    Instalación completada exitosamente  ${NC}"
-echo -e "${GREEN}========================================${NC}"
+echo -e "${GREEN}╔══════════════════════════════════════════╗${NC}"
+echo -e "${GREEN}║${NC}   ✅  ${CYAN}Instalación completada${NC}              ${GREEN}║${NC}"
+echo -e "${GREEN}╚══════════════════════════════════════════╝${NC}"
 echo ""
-echo -e "${BLUE}Para comenzar, ejecuta:${NC}"
-echo "  gam add          # Agregar tu primera cuenta"
-echo "  gam list         # Listar cuentas configuradas"
-echo "  gam help         # Ver todos los comandos"
+echo -e "  Para comenzar:"
+echo -e "    ${YELLOW}gam add${NC}          Agregar tu primera cuenta"
+echo -e "    ${YELLOW}gam list${NC}         Listar cuentas configuradas"
+echo -e "    ${YELLOW}gam help${NC}         Ver todos los comandos"
 echo ""
-echo -e "${BLUE}Para autocompletado inmediato:${NC}"
-echo "  source ~/.bashrc"
+echo -e "  Para autocompletado inmediato:"
+echo -e "    ${YELLOW}source ${SHELL_RC:-~/.bashrc}${NC}"
 echo ""

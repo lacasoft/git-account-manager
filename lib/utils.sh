@@ -9,6 +9,39 @@ export MAGENTA=$'\033[0;35m'
 export CYAN=$'\033[0;36m'
 export NC=$'\033[0m'
 
+# Detección de sistema operativo
+detect_os() {
+    case "$(uname -s)" in
+        Linux*)  echo "linux" ;;
+        Darwin*) echo "macos" ;;
+        *)       echo "unknown" ;;
+    esac
+}
+export GAM_OS
+GAM_OS="$(detect_os)"
+
+# sed -i portable (macOS necesita sed -i '', Linux usa sed -i)
+sed_inplace() {
+    if [ "$GAM_OS" = "macos" ]; then
+        sed -i '' "$@"
+    else
+        sed -i "$@"
+    fi
+}
+
+# Copiar al portapapeles
+copy_to_clipboard() {
+    local text="$1"
+    if [ "$GAM_OS" = "macos" ]; then
+        echo "$text" | pbcopy && return 0
+    elif command -v xclip &> /dev/null; then
+        echo "$text" | xclip -selection clipboard && return 0
+    elif command -v xsel &> /dev/null; then
+        echo "$text" | xsel --clipboard && return 0
+    fi
+    return 1
+}
+
 # Logging
 log_info() {
     echo -e "${BLUE}[INFO]${NC} $1" >&2

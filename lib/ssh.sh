@@ -28,9 +28,15 @@ generate_ssh_key() {
     if [ -z "$SSH_AUTH_SOCK" ]; then
         eval "$(ssh-agent -s)" > /dev/null 2>&1
     fi
-    ssh-add "$ssh_key_file" 2>/dev/null
-    log_success "Clave agregada al agente SSH"
-    
+
+    if [ "$GAM_OS" = "macos" ]; then
+        ssh-add --apple-use-keychain "$ssh_key_file" 2>/dev/null
+        log_success "Clave agregada al agente SSH (keychain de macOS)"
+    else
+        ssh-add "$ssh_key_file" 2>/dev/null
+        log_success "Clave agregada al agente SSH"
+    fi
+
     echo "$ssh_key_file"
 }
 
@@ -40,10 +46,21 @@ use_ssh_template() {
     local ssh_key_file="$2"
     local template_file="${TEMPLATES_DIR:-$SCRIPT_DIR/templates}/ssh-config.template"
     
+    local keychain_line=""
+    if [ "$GAM_OS" = "macos" ]; then
+        keychain_line="    UseKeychain yes
+    AddKeysToAgent yes"
+    fi
+
     if [ -f "$template_file" ]; then
-        sed -e "s/{{ACCOUNT_NAME}}/$account_name/g" \
+        local output
+        output=$(sed -e "s/{{ACCOUNT_NAME}}/$account_name/g" \
             -e "s|{{SSH_KEY_PATH}}|$ssh_key_file|g" \
-            "$template_file"
+            "$template_file")
+        echo "$output"
+        if [ -n "$keychain_line" ]; then
+            echo "$keychain_line"
+        fi
     else
         # Fallback si no existe template
         cat << EOF
@@ -53,7 +70,8 @@ Host github.com-$account_name
     HostName github.com
     User git
     IdentityFile $ssh_key_file
-    IdentitiesOnly yes
+    IdentitiesOnly yes${keychain_line:+
+$keychain_line}
     ServerAliveInterval 60
     ServerAliveCountMax 3
     Compression yes

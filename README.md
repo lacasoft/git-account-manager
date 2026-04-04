@@ -1,5 +1,7 @@
 <div align="center">
 
+> 🇪🇸 [Leer en español](README.es.md)
+
 ```
   ██████╗  █████╗ ███╗   ███╗
  ██╔════╝ ██╔══██╗████╗ ████║
@@ -11,31 +13,31 @@
 
 ### 🔑 Git Account Manager
 
-> Gestiona múltiples cuentas de GitHub con SSH desde la terminal — sin configuración manual, sin contraseñas, sin drama.
+> Manage multiple GitHub accounts with SSH from the terminal — no manual config, no passwords, no drama.
 
 [![Version](https://img.shields.io/badge/version-1.0.0-6366f1?style=flat-square)](https://github.com/lacasoft/git-account-manager/releases)
 [![License](https://img.shields.io/badge/license-MIT-22c55e?style=flat-square)](LICENSE)
-[![Platform](https://img.shields.io/badge/Ubuntu%20%7C%20Debian-supported-f97316?style=flat-square&logo=ubuntu&logoColor=white)](https://github.com/lacasoft/git-account-manager)
-[![Shell](https://img.shields.io/badge/bash-puro-4EAA25?style=flat-square&logo=gnubash&logoColor=white)](https://www.gnu.org/software/bash/)
-[![Dependencies](https://img.shields.io/badge/dependencias-ninguna-lightgrey?style=flat-square)](https://github.com/lacasoft/git-account-manager)
+[![Platform](https://img.shields.io/badge/Linux%20%7C%20macOS-supported-f97316?style=flat-square&logo=apple&logoColor=white)](https://github.com/lacasoft/git-account-manager)
+[![Shell](https://img.shields.io/badge/pure%20bash-4EAA25?style=flat-square&logo=gnubash&logoColor=white)](https://www.gnu.org/software/bash/)
+[![Dependencies](https://img.shields.io/badge/dependencies-none-lightgrey?style=flat-square)](https://github.com/lacasoft/git-account-manager)
 
 </div>
 
 ---
 
-## 🤔 ¿Por qué GAM?
+## 🤔 Why GAM?
 
-¿Tienes cuenta personal y de trabajo en GitHub en la misma máquina? Sin GAM, toca editar `~/.ssh/config` a mano, generar claves SSH, configurar `~/.gitconfig` y rezar para no hacer push al repo equivocado con la cuenta incorrecta.
+Got a personal and a work GitHub account on the same machine? Without GAM you have to manually edit `~/.ssh/config`, generate SSH keys, set up `~/.gitconfig`, and pray you don't push to the wrong repo with the wrong account.
 
-**GAM lo resuelve con un comando:**
+**GAM fixes that with a single command:**
 
-| Sin GAM 😩 | Con GAM 😎 |
-|------------|-----------|
-| Editar `~/.ssh/config` a mano | `gam add` |
-| Recordar qué clave SSH usar | Automático por carpeta |
-| Cambiar `user.email` antes de cada commit | `gam switch trabajo` |
-| Clonar con URL SSH correcta | `gam clone trabajo empresa/repo` |
-| Perder configuración al formatear | `gam export > backup.txt` |
+| Without GAM 😩 | With GAM 😎 |
+|----------------|------------|
+| Manually edit `~/.ssh/config` | `gam add` |
+| Remember which SSH key to use | Automatic per folder |
+| Change `user.email` before every commit | `gam switch work` |
+| Clone with the right SSH URL | `gam clone work company/repo` |
+| Lose your config when you format | `gam export > backup.txt` |
 
 ---
 
@@ -43,151 +45,173 @@
 
 ```
 $ gam list
-Cuentas de GitHub configuradas:
-================================
+╔══════════════════════════════════════════╗
+║   🔑  Cuentas de GitHub configuradas   ║
+╚══════════════════════════════════════════╝
 
-📁 personal
-   🔑 github.com-personal
-   👤 Juan García <juan@personal.com>
+  📁 personal
+  ├─ 🔑  github.com-personal
+  └─ 👤  John Doe <john@personal.com>
 
-📁 trabajo
-   🔑 github.com-trabajo
-   👤 Juan García <juan@empresa.com>
+  📁 work
+  ├─ 🔑  github.com-work
+  └─ 👤  John Doe <john@company.com>
 
-$ gam test trabajo
-[INFO] Probando conexión para trabajo...
-[✓] Conexión exitosa para trabajo
+  ──────────────────────────────────────────
+  Total: 2 account(s)
 
-$ gam clone trabajo empresa/proyecto
-[INFO] Clonando empresa/proyecto con cuenta trabajo...
+$ gam test work
+[INFO] Probando conexión para work...
+[✓] Conexión exitosa para work
+
+$ gam clone work company/project
+[INFO] Clonando company/project con cuenta work...
 [✓] Repositorio clonado exitosamente
 ```
 
 ---
 
-## 📦 Requisitos
+## 📦 Requirements
 
-- 🐧 Ubuntu 24.04 / Debian 12 o superior
+- 🐧 **Linux**: Ubuntu 20.04+, Debian 11+ (or any distro with bash 4+)
+- 🍎 **macOS**: 12 Monterey or later
 - 🔧 `git`
 - 🔐 `openssh-client`
 
 ---
 
-## 🚀 Instalación
+## 🚀 Installation
+
+**One-liner** (downloads and installs automatically):
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/lacasoft/git-account-manager/main/install.sh)
+```
+
+**From the repo** (if you prefer to review the code first):
 
 ```bash
 git clone https://github.com/lacasoft/git-account-manager.git
 cd git-account-manager
 bash install.sh
-source ~/.bashrc
 ```
 
-Instala `gam` en `/usr/local/bin/`, despliega las librerías en `~/.gam/` y configura el autocompletado en `~/.bashrc`.
+Installs `gam` to `/usr/local/bin/`, deploys libraries to `~/.gam/`, and sets up shell autocompletion.
+
+> **macOS**: GAM auto-detects your system and configures `ssh-add --apple-use-keychain`, `UseKeychain` in SSH config, and uses `pbcopy` to copy keys to the clipboard.
 
 ---
 
-## ⚡ Uso rápido
+## ⚡ Quick start
 
 ```bash
-gam add                          # ➕ Agregar cuenta (interactivo)
-gam list                         # 📋 Ver todas las cuentas
-gam test personal                # 🔌 Probar conexión SSH
-gam clone personal lacasoft/repo # 📥 Clonar con cuenta específica
-gam use ~/code/trabajo           # 📂 Git automático por carpeta
-gam switch trabajo               # 🔄 Cambiar config Git global
-gam export > backup.txt          # 💾 Exportar configuración
-gam import backup.txt            # 📤 Restaurar configuración
+gam add                          # ➕ Add account (interactive)
+gam list                         # 📋 List all accounts
+gam test personal                # 🔌 Test SSH connection
+gam clone personal lacasoft/repo # 📥 Clone with specific account
+gam use ~/code/work              # 📂 Auto-configure Git per folder
+gam switch work                  # 🔄 Switch global Git config
+gam export > backup.txt          # 💾 Export configuration
+gam import backup.txt            # 📤 Restore configuration
 ```
 
 ---
 
-## 📖 Comandos
+## 📖 Commands
 
-| Comando | Sintaxis | Descripción |
-|---------|----------|-------------|
-| `add` | `gam add [--name X --email X --username X]` | ➕ Agrega nueva cuenta |
-| `list` | `gam list` | 📋 Lista cuentas configuradas |
-| `remove` | `gam remove <cuenta>` | 🗑️ Elimina cuenta y sus claves |
-| `test` | `gam test [cuenta]` | 🔌 Prueba conexión SSH |
-| `clone` | `gam clone <cuenta> <usuario/repo>` | 📥 Clona repo con cuenta específica |
-| `switch` | `gam switch <cuenta>` | 🔄 Cambia config Git global |
-| `use` | `gam use <carpeta>` | 📂 Git automático por carpeta |
-| `export` | `gam export` | 💾 Exporta configuración |
-| `import` | `gam import <archivo>` | 📤 Restaura configuración |
+| Command | Syntax | Description |
+|---------|--------|-------------|
+| `add` | `gam add [--name X --email X --username X]` | ➕ Add new account |
+| `list` | `gam list` | 📋 List configured accounts |
+| `remove` | `gam remove <account>` | 🗑️ Remove account and its keys |
+| `test` | `gam test [account]` | 🔌 Test SSH connection |
+| `clone` | `gam clone <account> <user/repo>` | 📥 Clone repo with specific account |
+| `switch` | `gam switch <account>` | 🔄 Switch global Git config |
+| `use` | `gam use <folder>` | 📂 Auto-configure Git per folder |
+| `export` | `gam export` | 💾 Export configuration |
+| `import` | `gam import <file>` | 📤 Restore configuration |
 
 ---
 
-## 🧠 Cómo funciona
+## 🧠 How it works
 
-GAM usa **SSH hosts personalizados** para separar las cuentas:
+GAM uses **custom SSH hosts** to separate accounts:
 
 ```
-# ~/.ssh/config generado por GAM
+# ~/.ssh/config generated by GAM
 Host github.com-personal
     HostName github.com
     User git
     IdentityFile ~/.ssh/id_ed25519_personal
 
-Host github.com-trabajo
+Host github.com-work
     HostName github.com
     User git
-    IdentityFile ~/.ssh/id_ed25519_trabajo
+    IdentityFile ~/.ssh/id_ed25519_work
 ```
 
-Y la directiva **`includeIf`** de Git para aplicar el perfil correcto por carpeta:
+And Git's **`includeIf`** directive to apply the right profile per folder:
 
 ```ini
 # ~/.gitconfig
 [includeIf "gitdir:~/code/personal/"]
     path = ~/.gitconfig-personal
 
-[includeIf "gitdir:~/code/trabajo/"]
-    path = ~/.gitconfig-trabajo
+[includeIf "gitdir:~/code/work/"]
+    path = ~/.gitconfig-work
 ```
 
-> 💡 Cada repositorio usa automáticamente el nombre, email y clave SSH correctos — sin configurar nada extra.
+> 💡 Each repository automatically uses the correct name, email, and SSH key — no extra configuration needed.
 
 ---
 
-## 🔄 Flujo de `gam add`
+## 🔄 `gam add` flow
 
 ```
 gam add
   │
-  ├─ 📝  Solicita nombre, email y username de GitHub
-  ├─ 🔐  Genera clave SSH Ed25519 → ~/.ssh/id_ed25519_{cuenta}
-  ├─ 🤝  Agrega la clave al agente SSH
-  ├─ ⚙️  Añade bloque Host a ~/.ssh/config
-  ├─ 📋  Muestra la clave pública → la pegas en GitHub Settings > SSH Keys
-  ├─ ✅  Verifica la conexión con ssh -T github.com-{cuenta}
-  └─ 📂  Configura Git automático por carpeta (opcional)
+  ├─ 📝  Prompts for account name, email, and GitHub username
+  ├─ 🔐  Generates Ed25519 SSH key → ~/.ssh/id_ed25519_{account}
+  ├─ 🤝  Adds the key to the SSH agent
+  ├─ ⚙️  Appends Host block to ~/.ssh/config
+  ├─ 📋  Shows public key → paste it in GitHub Settings > SSH Keys
+  ├─ ✅  Verifies connection with ssh -T github.com-{account}
+  └─ 📂  Configures automatic Git profile per folder (optional)
 ```
 
 ---
 
-## 📁 Archivos generados
+## 📁 Generated files
 
 ```
-~/.ssh/id_ed25519_{cuenta}       # 🔑 Clave privada SSH
-~/.ssh/id_ed25519_{cuenta}.pub   # 📋 Clave pública SSH
-~/.ssh/config                    # ⚙️  Configuración SSH por cuenta
-~/.gitconfig-{cuenta}            # 👤 Perfil Git de la cuenta
-~/.gitconfig                     # 🗂️  includeIf por carpeta
-~/.gam/                          # 📦 Librerías y templates de GAM
+~/.ssh/id_ed25519_{account}       # 🔑 SSH private key
+~/.ssh/id_ed25519_{account}.pub   # 📋 SSH public key
+~/.ssh/config                     # ⚙️  SSH config per account
+~/.gitconfig-{account}            # 👤 Git profile for the account
+~/.gitconfig                      # 🗂️  includeIf entries per folder
+~/.gam/                           # 📦 GAM libraries and templates
 ```
 
 ---
 
-## 🗑️ Desinstalación
+## 🗑️ Uninstall
 
 ```bash
 bash uninstall.sh
 ```
 
-Pregunta si también quieres eliminar las claves SSH y configuraciones de Git generadas por GAM.
+Prompts whether to also remove SSH keys and Git configurations generated by GAM.
 
 ---
 
-## 📄 Licencia
+## 🤝 Contributing
 
-MIT © [lacasoft](https://github.com/lacasoft) — úsalo, modifícalo, compártelo.
+Want to improve GAM? Read [CONTRIBUTING.md](CONTRIBUTING.md) for local development instructions, conventions, and how to open a PR.
+
+Found a bug? Open an [issue](https://github.com/lacasoft/git-account-manager/issues/new?template=bug_report.md).
+
+---
+
+## 📄 License
+
+MIT © [lacasoft](https://github.com/lacasoft) — use it, modify it, share it.

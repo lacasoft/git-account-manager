@@ -65,6 +65,13 @@ add_account() {
     log_info "=== CLAVE PÚBLICA (agrega a GitHub) ==="
     cat "${ssh_key_file}.pub"
     echo "========================================="
+
+    # Intentar copiar al portapapeles
+    local pub_key
+    pub_key=$(cat "${ssh_key_file}.pub")
+    if copy_to_clipboard "$pub_key"; then
+        log_success "Clave copiada al portapapeles"
+    fi
     echo ""
     
     log_info "Pasos a seguir:"
@@ -181,7 +188,18 @@ remove_account() {
     
     # Eliminar de SSH config
     if [ -f "$HOME/.ssh/config" ]; then
-        sed -i "/# Cuenta: $account_name/,+9d" "$HOME/.ssh/config"
+        if [ "$GAM_OS" = "macos" ]; then
+            # macOS sed no soporta ,+Nd — usar awk
+            awk -v acct="# Cuenta: $account_name" '
+                $0 == acct { skip=1; next }
+                skip && /^[[:space:]]/ { next }
+                skip && /^$/ { skip=0; next }
+                skip && /^[^[:space:]]/ { skip=0 }
+                { print }
+            ' "$HOME/.ssh/config" > "$HOME/.ssh/config.tmp" && mv "$HOME/.ssh/config.tmp" "$HOME/.ssh/config"
+        else
+            sed -i "/# Cuenta: $account_name/,+9d" "$HOME/.ssh/config"
+        fi
         log_success "Configuración SSH eliminada"
     fi
     
@@ -193,7 +211,7 @@ remove_account() {
         
         # Eliminar includeIf de .gitconfig
         if [ -f "$HOME/.gitconfig" ]; then
-            sed -i "\|path = $git_config|d" "$HOME/.gitconfig" 2>/dev/null
+            sed_inplace "\|path = $git_config|d" "$HOME/.gitconfig" 2>/dev/null
         fi
     fi
     

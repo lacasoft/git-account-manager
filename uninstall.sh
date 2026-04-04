@@ -11,6 +11,18 @@ YELLOW=$'\033[1;33m'
 BLUE=$'\033[0;34m'
 NC=$'\033[0m'
 
+# Detección de OS para sed portable
+GAM_OS="linux"
+case "$(uname -s)" in Darwin*) GAM_OS="macos" ;; esac
+
+sed_inplace() {
+    if [ "$GAM_OS" = "macos" ]; then
+        sed -i '' "$@"
+    else
+        sed -i "$@"
+    fi
+}
+
 echo -e "${BLUE}========================================${NC}"
 echo -e "${BLUE}    Git Account Manager - Desinstalador ${NC}"
 echo -e "${BLUE}========================================${NC}"
@@ -58,7 +70,12 @@ if [[ "$remove_configs" =~ ^[sS] ]]; then
             echo "Backup de SSH config guardado en ~/.ssh/config.backup.*"
             
             # Eliminar solo las líneas de GAM
-            sed -i '/# Cuenta:/,+9d' "$HOME/.ssh/config" 2>/dev/null || true
+            if [ "$GAM_OS" = "macos" ]; then
+                awk '/^# Cuenta:/{skip=1;next} skip&&/^[[:space:]]/{next} skip&&/^$/{skip=0;next} skip&&/^[^[:space:]]/{skip=0} {print}' \
+                    "$HOME/.ssh/config" > "$HOME/.ssh/config.tmp" && mv "$HOME/.ssh/config.tmp" "$HOME/.ssh/config"
+            else
+                sed -i '/# Cuenta:/,+9d' "$HOME/.ssh/config" 2>/dev/null || true
+            fi
             
             # Si el archivo quedó vacío, eliminarlo
             if [ ! -s "$HOME/.ssh/config" ]; then
@@ -78,8 +95,8 @@ if [[ "$remove_configs" =~ ^[sS] ]]; then
         cp "$HOME/.gitconfig" "$HOME/.gitconfig.backup.$(date +%Y%m%d_%H%M%S)"
         
         # Eliminar líneas de includeIf de GAM
-        sed -i '/includeIf.*gitdir:/d' "$HOME/.gitconfig" 2>/dev/null || true
-        sed -i '\|path = .*/.gitconfig-|d' "$HOME/.gitconfig" 2>/dev/null || true
+        sed_inplace '/includeIf.*gitdir:/d' "$HOME/.gitconfig" 2>/dev/null || true
+        sed_inplace '\|path = .*/.gitconfig-|d' "$HOME/.gitconfig" 2>/dev/null || true
         
         echo -e "${GREEN}✓ Configuración Git limpiada${NC}"
     fi
@@ -100,8 +117,8 @@ fi
 # Eliminar autocompletado de .bashrc
 if [ -f "$HOME/.bashrc" ]; then
     if grep -q "gam-completion.bash" "$HOME/.bashrc" 2>/dev/null; then
-        sed -i '/# Git Account Manager completion/d' "$HOME/.bashrc"
-        sed -i '/gam-completion.bash/d' "$HOME/.bashrc"
+        sed_inplace '/# Git Account Manager completion/d' "$HOME/.bashrc"
+        sed_inplace '/gam-completion.bash/d' "$HOME/.bashrc"
         echo -e "${GREEN}✓ Autocompletado eliminado de .bashrc${NC}"
     fi
 fi
