@@ -67,21 +67,56 @@ create_git_config() {
     
     # Agregar includeIf si se especificó carpeta
     if [ -n "$project_folder" ]; then
-        # Expandir ~ a ruta completa
-        project_folder="${project_folder/#\~/$HOME}"
-        
-        # Crear directorio si no existe
-        ensure_dir "$project_folder"
-        
-        if ! grep -qF "gitdir:$project_folder/" "$HOME/.gitconfig" 2>/dev/null; then
-            echo "" >> "$HOME/.gitconfig"
-            echo "[includeIf \"gitdir:$project_folder/\"]" >> "$HOME/.gitconfig"
-            echo "    path = $git_config_file" >> "$HOME/.gitconfig"
-            log_success "Configuración automática para $project_folder/"
+        add_include_if "$project_folder" "$git_config_file" || true
+    fi
+}
+
+# Asociar una carpeta a un perfil Git con includeIf en ~/.gitconfig
+add_include_if() {
+    local folder
+    folder=$(abs_path "$1")
+    local git_config_file="$2"
+
+    # Crear la carpeta solo si el usuario lo confirma: así se detectan
+    # respuestas por error (p.ej. "s") antes de escribir un includeIf inútil
+    if [ ! -d "$folder" ]; then
+        if confirm "La carpeta '$folder' no existe. ¿Crearla?"; then
+            mkdir -p "$folder"
+            log_success "Carpeta creada: $folder"
         else
-            log_warning "Ya existe configuración para $project_folder/"
+            log_warning "No se configuró la carpeta $folder"
+            return 1
         fi
     fi
+
+    local key="includeIf.gitdir:$folder/.path"
+    local current
+    current=$(git config --global --get "$key" 2>/dev/null || true)
+
+    if [ -z "$current" ]; then
+        git config --global "$key" "$git_config_file"
+        log_success "Configuración automática para $folder/"
+    elif [ "${current/#\~/$HOME}" = "$git_config_file" ]; then
+        log_info "La carpeta $folder/ ya usa este perfil"
+    else
+        log_warning "La carpeta $folder/ ya está asignada a otro perfil: $current"
+        return 1
+    fi
+}
+
+# Listar las condiciones includeIf (p.ej. "gitdir:/code/x/") que usan un perfil
+get_profile_includes() {
+    local profile="$1"
+    local entry key value
+
+    git config --global --null --get-regexp '^includeif\..*\.path$' 2>/dev/null |
+    while IFS= read -r -d '' entry; do
+        key="${entry%%$'\n'*}"
+        value="${entry#*$'\n'}"
+        [ "${value/#\~/$HOME}" = "$profile" ] || continue
+        key="${key#includeif.}"
+        echo "${key%.path}"
+    done
 }
 
 # Cambiar configuración Git global
@@ -130,8 +165,9 @@ setup_auto_git_config() {
         return 1
     fi
     
-    # Expandir ~
-    folder="${folder/#\~/$HOME}"
+    # Ruta absoluta (una relativa como "s/" haría que Git la aplique a
+    # cualquier carpeta con ese nombre)
+    folder=$(abs_path "$folder")
     
     # Verificar que la carpeta existe o crearla
     if [ ! -d "$folder" ]; then
@@ -176,15 +212,7 @@ setup_auto_git_config() {
             fi
         fi
         
-        # Agregar includeIf si no existe ya
-        if grep -qF "gitdir:$folder/" "$HOME/.gitconfig" 2>/dev/null; then
-            log_warning "Ya existe configuración automática para $folder/"
-        else
-            echo "" >> "$HOME/.gitconfig"
-            echo "[includeIf \"gitdir:$folder/\"]" >> "$HOME/.gitconfig"
-            echo "    path = $git_config_file" >> "$HOME/.gitconfig"
-            log_success "Configuración automática agregada para $folder/ usando $selected_account"
-        fi
+        add_include_if "$folder" "$git_config_file"
     else
         log_error "Selección inválida"
     fi

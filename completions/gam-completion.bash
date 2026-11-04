@@ -4,10 +4,24 @@ _gam_completion() {
     local cur prev words cword
     _init_completion || return
 
-    local commands="add list remove test clone switch use export import help"
+    local commands="add list update remove check test clone switch use export import upgrade help"
     
+    if [[ "$cur" == -* ]]; then
+        case "${words[1]}" in
+            add)    COMPREPLY=($(compgen -W "--name --email --username" -- "$cur")) ;;
+            update) COMPREPLY=($(compgen -W "--email --username --folder --new-key" -- "$cur")) ;;
+            check)  COMPREPLY=($(compgen -W "--fix" -- "$cur")) ;;
+            *)      COMPREPLY=($(compgen -W "--help" -- "$cur")) ;;
+        esac
+        return 0
+    fi
+
     case "$prev" in
-        remove|test|switch)
+        --folder)
+            COMPREPLY=($(compgen -d -- "$cur"))
+            return 0
+            ;;
+        update|remove|check|test|switch)
             # Completar con nombres de cuentas
             local accounts=$(grep "^# Cuenta:" ~/.ssh/config 2>/dev/null | sed 's/# Cuenta: //')
             COMPREPLY=($(compgen -W "$accounts" -- "$cur"))
@@ -38,12 +52,7 @@ _gam_completion() {
             return 0
             ;;
     esac
-    
-    if [[ "$cur" == -* ]]; then
-        COMPREPLY=($(compgen -W "--help --name --email --username" -- "$cur"))
-        return 0
-    fi
-    
+        
     COMPREPLY=($(compgen -W "$commands" -- "$cur"))
 }
 

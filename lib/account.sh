@@ -47,8 +47,14 @@ add_account() {
     validate_not_empty "$username" "Usuario de GitHub" || return 1
     
     # Verificar que no exista
-    if grep -q "# Cuenta: $account_name" "$HOME/.ssh/config" 2>/dev/null; then
+    if account_exists "$account_name"; then
         log_error "La cuenta '$account_name' ya existe"
+        echo ""
+        echo "  Si el alta quedó a medias o quieres cambiar algo:"
+        echo -e "    ${YELLOW}gam check $account_name${NC}    ver qué le falta"
+        echo -e "    ${YELLOW}gam update $account_name${NC}   cambiar email, usuario, carpeta o clave"
+        echo -e "    ${YELLOW}gam remove $account_name${NC}   eliminarla y empezar de nuevo"
+        echo ""
         return 1
     fi
     
@@ -60,29 +66,9 @@ add_account() {
     local ssh_host
     ssh_host=$(configure_ssh "$account_name") || return 1
     
-    # Mostrar clave pública
-    echo ""
-    log_info "=== CLAVE PÚBLICA (agrega a GitHub) ==="
-    cat "${ssh_key_file}.pub"
-    echo "========================================="
-
-    # Intentar copiar al portapapeles
-    local pub_key
-    pub_key=$(cat "${ssh_key_file}.pub")
-    if copy_to_clipboard "$pub_key"; then
-        log_success "Clave copiada al portapapeles"
-    fi
-    echo ""
-    
-    log_info "Pasos a seguir:"
-    echo "1. Ve a https://github.com/settings/keys"
-    echo "2. Inicia sesión como: $username"
-    echo "3. Haz clic en 'New SSH key'"
-    echo "4. Título: $account_name"
-    echo "5. Tipo: Authentication Key"
-    echo "6. Pega la clave pública mostrada arriba"
-    echo "7. Haz clic en 'Add SSH key'"
-    echo ""
+    # Mostrar clave pública e instrucciones
+    show_key_instructions "$account_name" "$username" "$ssh_key_file"
+    log_info "Si interrumpes este paso, retómalo luego con: gam check $account_name"
     
     read -p "¿Ya agregaste la clave en GitHub? (s/n): " key_added
     
@@ -99,7 +85,7 @@ add_account() {
             fi
         fi
     else
-        log_info "Cuando agregues la clave, prueba con: gam test $account_name"
+        log_info "Cuando agregues la clave, verifica con: gam check $account_name"
     fi
     
     log_success "Cuenta $account_name agregada exitosamente"
@@ -109,6 +95,173 @@ add_account() {
     echo ""
     echo "O usa:"
     echo "  gam clone $account_name $username/repo"
+}
+
+# Actualizar cuenta existente
+update_account() {
+    local account_name=""
+    local email=""
+    local username=""
+    local folder=""
+    local new_key=false
+    local interactive=true
+
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --email)    email="$2";    interactive=false; shift 2 ;;
+            --username) username="$2"; interactive=false; shift 2 ;;
+            --folder)   folder="$2";   interactive=false; shift 2 ;;
+            --new-key)  new_key=true;  interactive=false; shift ;;
+            -*)
+                log_error "Opción desconocida: $1"
+                return 1
+                ;;
+            *)
+                account_name="$1"
+                shift
+                ;;
+        esac
+    done
+
+    if [ -z "$account_name" ]; then
+        log_error "Uso: gam update <cuenta> [--email X] [--username X] [--folder X] [--new-key]"
+        return 1
+    fi
+
+    if ! account_exists "$account_name"; then
+        log_error "La cuenta '$account_name' no existe"
+        echo "Ejecuta 'gam list' para ver las cuentas disponibles"
+        return 1
+    fi
+
+    local git_config_file="$HOME/.gitconfig-$account_name"
+    local ssh_key_file="$HOME/.ssh/id_ed25519_$account_name"
+
+    # Valores actuales: perfil Git y, como respaldo, el comentario de la clave
+    local cur_name="" cur_email="" key_email=""
+    if [ -f "$git_config_file" ]; then
+        cur_name=$(git config --file "$git_config_file" user.name 2>/dev/null || true)
+        cur_email=$(git config --file "$git_config_file" user.email 2>/dev/null || true)
+    fi
+    if [ -f "${ssh_key_file}.pub" ]; then
+        key_email=$(awk '{print $3}' "${ssh_key_file}.pub")
+    fi
+
+    if [ "$interactive" = true ]; then
+        echo ""
+        echo -e "${BLUE}╔══════════════════════════════════════════╗${NC}"
+        echo -e "${BLUE}║${NC}   ✏️   ${CYAN}Actualizar cuenta de GitHub${NC}       ${BLUE}║${NC}"
+        echo -e "${BLUE}╚══════════════════════════════════════════╝${NC}"
+        echo ""
+        echo -e "  ${GREEN}📁 $account_name${NC}"
+        echo -e "  ${CYAN}Deja vacío para mantener el valor actual.${NC}"
+        if [ ! -f "$git_config_file" ]; then
+            echo -e "  ${YELLOW}⚠️  Aún no tiene perfil Git: indica email y usuario para crearlo.${NC}"
+        fi
+        echo ""
+
+        read -p "  📧  Email [${cur_email:-$key_email}]: " email
+        read -p "  🐙  Usuario en GitHub [${cur_name}]: " username
+
+        local includes
+        includes=$(get_profile_includes "$git_config_file")
+        if [ -n "$includes" ]; then
+            echo "  📂  Carpetas actuales:"
+            echo "$includes" | sed 's/^/        /'
+        fi
+        read -p "  📂  Agregar carpeta de proyectos (vacío para omitir): " folder
+        echo ""
+
+        log_warning "Regenerar la clave invalida la actual: tendrás que registrar la nueva en GitHub"
+        if confirm "  🔑  ¿Regenerar la clave SSH?"; then
+            new_key=true
+        fi
+        echo ""
+    elif [ "$new_key" = true ]; then
+        log_warning "Regenerar la clave invalida la actual: tendrás que registrar la nueva en GitHub"
+        if ! confirm "¿Regenerar la clave SSH de '$account_name'?"; then
+            new_key=false
+        fi
+    fi
+
+    local email_input="$email"
+    email="${email:-${cur_email:-$key_email}}"
+    username="${username:-$cur_name}"
+
+    local changes=0
+
+    # 1) Perfil Git
+    if [ ! -f "$git_config_file" ]; then
+        if [ -n "$email" ] && [ -n "$username" ]; then
+            create_git_config "$account_name" "$email" "$username" ""
+            changes=$((changes + 1))
+        elif [ -n "$folder" ]; then
+            log_error "Para asignar una carpeta primero hace falta un perfil Git: indica email y usuario"
+            return 1
+        fi
+    else
+        if [ "$username" != "$cur_name" ]; then
+            git config --file "$git_config_file" user.name "$username"
+            log_success "Usuario actualizado: $username"
+            changes=$((changes + 1))
+        fi
+        if [ "$email" != "$cur_email" ]; then
+            git config --file "$git_config_file" user.email "$email"
+            log_success "Email actualizado: $email"
+            changes=$((changes + 1))
+        fi
+    fi
+
+    # Si cambió el email, actualizar también el comentario de la clave pública
+    # (la clave es la misma, GitHub la sigue reconociendo)
+    if [ "$new_key" = false ] && [ -n "$email_input" ] && [ -f "$ssh_key_file" ] && [ "$email_input" != "$key_email" ]; then
+        if ssh-keygen -c -C "$email" -P "" -f "$ssh_key_file" >/dev/null 2>&1; then
+            log_success "Comentario de la clave SSH actualizado"
+        fi
+    fi
+
+    # 2) Carpeta de proyectos
+    if [ -n "$folder" ]; then
+        if add_include_if "$folder" "$git_config_file"; then
+            changes=$((changes + 1))
+        fi
+    fi
+
+    # 3) Nueva clave SSH
+    if [ "$new_key" = true ]; then
+        validate_not_empty "$email" "Email" || return 1
+
+        if [ -f "$ssh_key_file" ]; then
+            local backup_suffix
+            backup_suffix="bak.$(date +%Y%m%d_%H%M%S)"
+            ssh-add -d "$ssh_key_file" >/dev/null 2>&1 || true
+            mv "$ssh_key_file" "$ssh_key_file.$backup_suffix"
+            [ -f "${ssh_key_file}.pub" ] && mv "${ssh_key_file}.pub" "${ssh_key_file}.pub.$backup_suffix"
+            log_info "Clave anterior respaldada en ${ssh_key_file}.$backup_suffix"
+        fi
+
+        generate_ssh_key "$account_name" "$email" >/dev/null || return 1
+        changes=$((changes + 1))
+
+        show_key_instructions "$account_name" "$username" "$ssh_key_file"
+        log_info "Elimina también la clave anterior de GitHub (mismo título: $account_name)"
+        echo ""
+
+        read -p "¿Ya agregaste la clave en GitHub? (s/n): " key_added
+        if [[ "$key_added" =~ ^[sS] ]]; then
+            test_ssh_connection "github.com-$account_name" "$account_name" || true
+        else
+            log_info "Cuando agregues la clave, verifica con: gam check $account_name"
+        fi
+    fi
+
+    echo ""
+    if [ "$changes" -eq 0 ]; then
+        log_info "No hubo cambios en '$account_name'"
+    else
+        log_success "Cuenta $account_name actualizada"
+        log_info "Revisa su estado con: gam check $account_name"
+    fi
 }
 
 # Listar cuentas
@@ -167,7 +320,7 @@ remove_account() {
     fi
     
     # Verificar que existe
-    if ! grep -q "# Cuenta: $account_name" "$HOME/.ssh/config" 2>/dev/null; then
+    if ! account_exists "$account_name"; then
         log_error "La cuenta '$account_name' no existe"
         return 1
     fi
@@ -188,18 +341,8 @@ remove_account() {
     
     # Eliminar de SSH config
     if [ -f "$HOME/.ssh/config" ]; then
-        if [ "$GAM_OS" = "macos" ]; then
-            # macOS sed no soporta ,+Nd — usar awk
-            awk -v acct="# Cuenta: $account_name" '
-                $0 == acct { skip=1; next }
-                skip && /^[[:space:]]/ { next }
-                skip && /^$/ { skip=0; next }
-                skip && /^[^[:space:]]/ { skip=0 }
-                { print }
-            ' "$HOME/.ssh/config" > "$HOME/.ssh/config.tmp" && mv "$HOME/.ssh/config.tmp" "$HOME/.ssh/config"
-        else
-            sed -i "/# Cuenta: $account_name/,+9d" "$HOME/.ssh/config"
-        fi
+        cp "$HOME/.ssh/config" "$HOME/.ssh/config.backup.$(date +%Y%m%d_%H%M%S)"
+        remove_ssh_block "$account_name"
         log_success "Configuración SSH eliminada"
     fi
     
@@ -251,7 +394,7 @@ clone_repo() {
     fi
     
     # Verificar que la cuenta existe
-    if ! grep -q "# Cuenta: $account_name" "$HOME/.ssh/config" 2>/dev/null; then
+    if ! account_exists "$account_name"; then
         log_error "La cuenta '$account_name' no existe"
         echo "Ejecuta 'gam list' para ver las cuentas disponibles"
         return 1
