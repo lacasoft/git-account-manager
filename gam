@@ -6,12 +6,13 @@
 
 set -e
 
-# Directorio base: ~/.gam si está instalado, directorio del script en modo dev
+# Directorio base: el del script en modo dev (corriendo desde el repo),
+# ~/.gam si está instalado en /usr/local/bin
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [ -d "$HOME/.gam/lib" ]; then
-    GAM_HOME="$HOME/.gam"
-else
+if [ -d "$SCRIPT_DIR/lib" ]; then
     GAM_HOME="$SCRIPT_DIR"
+else
+    GAM_HOME="$HOME/.gam"
 fi
 LIB_DIR="$GAM_HOME/lib"
 export TEMPLATES_DIR="$GAM_HOME/templates"
@@ -30,6 +31,7 @@ source "$LIB_DIR/utils.sh"
 source "$LIB_DIR/ssh.sh"
 source "$LIB_DIR/account.sh"
 source "$LIB_DIR/git-config.sh"
+source "$LIB_DIR/check.sh"
 
 # Mostrar ayuda
 show_help() {
@@ -50,7 +52,10 @@ ${BLUE}└───────────────────────�
 ${CYAN}COMANDOS${NC}
   ${YELLOW}add${NC}     [--name X --email X --username X]   ➕  Agregar cuenta
   ${YELLOW}list${NC}                                        📋  Listar cuentas
+  ${YELLOW}update${NC}  <cuenta> [--email X --username X   ✏️   Actualizar cuenta
+          --folder X --new-key]
   ${YELLOW}remove${NC}  <cuenta>                            🗑️   Eliminar cuenta
+  ${YELLOW}check${NC}   [cuenta] [--fix]                    🩺  Diagnosticar (y reparar)
   ${YELLOW}test${NC}    [cuenta]                            🔌  Probar conexión SSH
   ${YELLOW}clone${NC}   <cuenta> <usuario/repo> [destino]  📥  Clonar repositorio
   ${YELLOW}switch${NC}  <cuenta>                            🔄  Cambiar config Git global
@@ -63,6 +68,8 @@ ${CYAN}EJEMPLOS${NC}
   gam add                                         ${BLUE}# interactivo${NC}
   gam add --name personal --email yo@mail.com --username miuser
   gam list
+  gam check personal                              ${BLUE}# ¿qué le falta?${NC}
+  gam update personal --folder ~/code/personal
   gam test personal
   gam clone personal lacasoft/mi-repo
   gam use ~/code/trabajo
@@ -88,8 +95,14 @@ main() {
         list)
             list_accounts
             ;;
+        update)
+            update_account "$@"
+            ;;
         remove)
             remove_account "$@"
+            ;;
+        check)
+            check_account "$@"
             ;;
         test)
             test_connection "$@"

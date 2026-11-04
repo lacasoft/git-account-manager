@@ -26,7 +26,8 @@ gam                          # Entry point — router de comandos
 lib/
 ├── utils.sh                 # Logging, confirmaciones, detección de OS, helpers
 ├── ssh.sh                   # Generación de claves SSH, configuración, test
-├── account.sh               # add, list, remove, test, clone, export, import
+├── account.sh               # add, list, update, remove, test, clone, export, import
+├── check.sh                 # check: diagnóstico y reparación (--fix)
 └── git-config.sh            # Perfiles Git, switch, includeIf por carpeta
 templates/
 ├── ssh-config.template      # Template para ~/.ssh/config

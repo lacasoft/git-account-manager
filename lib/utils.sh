@@ -107,6 +107,42 @@ check_installed() {
     return 0
 }
 
+# Convertir una ruta a absoluta (expande ~ y resuelve rutas relativas al cwd)
+abs_path() {
+    local path="${1/#\~/$HOME}"
+    case "$path" in
+        /*) ;;
+        *) path="$PWD/${path#./}" ;;
+    esac
+    # Quitar barras finales (excepto la raíz)
+    while [ "${#path}" -gt 1 ] && [ "${path%/}" != "$path" ]; do
+        path="${path%/}"
+    done
+    echo "$path"
+}
+
+# Ruta con ~ en lugar de $HOME, para mostrar
+tilde_path() {
+    echo "${1/#"$HOME"/"~"}"
+}
+
+# Permisos de un archivo en octal (portable Linux/macOS)
+file_mode() {
+    if [ "$GAM_OS" = "macos" ]; then
+        stat -f '%Lp' "$1" 2>/dev/null
+    else
+        stat -c '%a' "$1" 2>/dev/null
+    fi
+}
+
+# Asegurar que un archivo termina en salto de línea (evita pegar líneas al hacer >>)
+ensure_trailing_newline() {
+    local file="$1"
+    if [ -s "$file" ] && [ -n "$(tail -c 1 "$file")" ]; then
+        echo "" >> "$file"
+    fi
+}
+
 # Crear directorio si no existe
 ensure_dir() {
     local dir="$1"

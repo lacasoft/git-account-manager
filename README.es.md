@@ -103,6 +103,8 @@ Instala `gam` en `/usr/local/bin/`, despliega las librerías en `~/.gam/` y conf
 ```bash
 gam add                          # ➕ Agregar cuenta (interactivo)
 gam list                         # 📋 Ver todas las cuentas
+gam check                        # 🩺 Diagnosticar todas las cuentas
+gam update personal              # ✏️  Cambiar email, usuario, carpeta o clave
 gam test personal                # 🔌 Probar conexión SSH
 gam clone personal lacasoft/repo # 📥 Clonar con cuenta específica
 gam use ~/code/trabajo           # 📂 Git automático por carpeta
@@ -119,6 +121,8 @@ gam import backup.txt            # 📤 Restaurar configuración
 |---------|----------|-------------|
 | `add` | `gam add [--name X --email X --username X]` | ➕ Agrega nueva cuenta |
 | `list` | `gam list` | 📋 Lista cuentas configuradas |
+| `update` | `gam update <cuenta> [--email X --username X --folder X --new-key]` | ✏️ Actualiza una cuenta existente |
+| `check` | `gam check [cuenta] [--fix]` | 🩺 Diagnostica cuentas y repara problemas comunes |
 | `remove` | `gam remove <cuenta>` | 🗑️ Elimina cuenta y sus claves |
 | `test` | `gam test [cuenta]` | 🔌 Prueba conexión SSH |
 | `clone` | `gam clone <cuenta> <usuario/repo>` | 📥 Clona repo con cuenta específica |
@@ -173,6 +177,28 @@ gam add
   ├─ 📋  Muestra la clave pública → la pegas en GitHub Settings > SSH Keys
   ├─ ✅  Verifica la conexión con ssh -T github.com-{cuenta}
   └─ 📂  Configura Git automático por carpeta (opcional)
+```
+
+---
+
+## 🩺 ¿Algo no funciona?
+
+Si `gam add` quedó a medias (por ejemplo, con `Ctrl+C` antes de registrar la clave en GitHub) o una cuenta dejó de funcionar:
+
+```bash
+gam check logimarket          # qué le falta a la cuenta y cómo resolverlo
+gam check --fix               # repara lo seguro: ~/.ssh/config dañado, permisos, .pub perdida
+gam update logimarket         # completa o cambia email, usuario, carpeta o clave (interactivo)
+```
+
+`gam check` revisa el bloque en `~/.ssh/config`, las claves y sus permisos, si GitHub reconoce la clave (y en qué cuenta), el perfil `~/.gitconfig-{cuenta}` y las carpetas `includeIf`. Si la clave aún no está en GitHub, te la muestra junto con los pasos para registrarla.
+
+`gam update` sin opciones pregunta cada valor (Enter mantiene el actual). Con opciones:
+
+```bash
+gam update trabajo --email yo@empresa.com     # también actualiza el comentario de la clave
+gam update trabajo --folder ~/code/empresa    # agrega otra carpeta al perfil
+gam update trabajo --new-key                  # nueva clave (la anterior queda en .bak.*)
 ```
 
 ---

@@ -107,6 +107,8 @@ Installs `gam` to `/usr/local/bin/`, deploys libraries to `~/.gam/`, and sets up
 ```bash
 gam add                          # ➕ Add account (interactive)
 gam list                         # 📋 List all accounts
+gam check                        # 🩺 Diagnose all accounts
+gam update personal              # ✏️  Change email, username, folder or key
 gam test personal                # 🔌 Test SSH connection
 gam clone personal lacasoft/repo # 📥 Clone with specific account
 gam use ~/code/work              # 📂 Auto-configure Git per folder
@@ -123,6 +125,8 @@ gam import backup.txt            # 📤 Restore configuration
 |---------|--------|-------------|
 | `add` | `gam add [--name X --email X --username X]` | ➕ Add new account |
 | `list` | `gam list` | 📋 List configured accounts |
+| `update` | `gam update <account> [--email X --username X --folder X --new-key]` | ✏️ Update an existing account |
+| `check` | `gam check [account] [--fix]` | 🩺 Diagnose accounts and repair common problems |
 | `remove` | `gam remove <account>` | 🗑️ Remove account and its keys |
 | `test` | `gam test [account]` | 🔌 Test SSH connection |
 | `clone` | `gam clone <account> <user/repo>` | 📥 Clone repo with specific account |
@@ -177,6 +181,28 @@ gam add
   ├─ 📋  Shows public key → paste it in GitHub Settings > SSH Keys
   ├─ ✅  Verifies connection with ssh -T github.com-{account}
   └─ 📂  Configures automatic Git profile per folder (optional)
+```
+
+---
+
+## 🩺 Something not working?
+
+If `gam add` was left half-done (e.g. `Ctrl+C` before registering the key on GitHub) or an account stopped working:
+
+```bash
+gam check work                # what the account is missing and how to fix it
+gam check --fix               # repairs the safe stuff: broken ~/.ssh/config, permissions, lost .pub
+gam update work               # complete or change email, username, folder or key (interactive)
+```
+
+`gam check` inspects the `~/.ssh/config` block, the keys and their permissions, whether GitHub recognizes the key (and on which account), the `~/.gitconfig-{account}` profile, and the `includeIf` folders. If the key isn't on GitHub yet, it prints it along with the steps to register it.
+
+`gam update` with no options prompts for each value (Enter keeps the current one). With options:
+
+```bash
+gam update work --email me@company.com        # also updates the key comment
+gam update work --folder ~/code/company       # adds another folder to the profile
+gam update work --new-key                     # new key (the old one is kept as .bak.*)
 ```
 
 ---
