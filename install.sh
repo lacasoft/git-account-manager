@@ -6,7 +6,7 @@
 set -e
 
 REPO_URL="https://github.com/lacasoft/git-account-manager"
-INSTALL_DIR="/usr/local/bin"
+INSTALL_DIR="${GAM_INSTALL_DIR:-/usr/local/bin}"
 GAM_HOME="$HOME/.gam"
 SCRIPT_NAME="gam"
 
@@ -88,6 +88,15 @@ else
     SUDO=""
 fi
 
+# ¿Instalación nueva o actualización?
+ALREADY_INSTALLED=false
+if [ -f "$INSTALL_DIR/$SCRIPT_NAME" ] && [ -d "$GAM_HOME/lib" ]; then
+    ALREADY_INSTALLED=true
+    echo -e "${YELLOW}GAM ya está instalado: se actualizará a esta versión${NC}"
+    echo -e "  (tus cuentas, claves y configuraciones no se tocan)"
+    echo ""
+fi
+
 # Copiar script principal
 echo -e "${BLUE}Instalando $SCRIPT_NAME...${NC}"
 $SUDO cp "$SCRIPT_DIR/gam" "$INSTALL_DIR/$SCRIPT_NAME"
@@ -101,6 +110,9 @@ cp "$SCRIPT_DIR/lib/"*.sh "$GAM_HOME/lib/"
 cp "$SCRIPT_DIR/templates/"* "$GAM_HOME/templates/"
 cp "$SCRIPT_DIR/completions/"* "$GAM_HOME/completions/"
 echo -e "${GREEN}✓ Archivos instalados en $GAM_HOME${NC}"
+
+# Guardar la versión instalada (commit) para que 'gam upgrade' sepa si hay una nueva
+git -C "$SCRIPT_DIR" rev-parse HEAD > "$GAM_HOME/version" 2>/dev/null || echo "unknown" > "$GAM_HOME/version"
 
 # Configurar autocompletado
 echo ""
@@ -129,6 +141,17 @@ fi
 # Limpiar si fue instalación remota
 if [ "$IS_REMOTE" = true ] && [ -n "$TMPDIR" ]; then
     rm -rf "$TMPDIR"
+fi
+
+if [ "$ALREADY_INSTALLED" = true ]; then
+    echo ""
+    echo -e "${GREEN}╔══════════════════════════════════════════╗${NC}"
+    echo -e "${GREEN}║${NC}   ✅  ${CYAN}Actualización completada${NC}            ${GREEN}║${NC}"
+    echo -e "${GREEN}╚══════════════════════════════════════════╝${NC}"
+    echo ""
+    echo -e "  Revisa tus cuentas con: ${YELLOW}gam check${NC}"
+    echo ""
+    exit 0
 fi
 
 echo ""

@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 
-# Actualizador de Git Account Manager
+# Actualizador de Git Account Manager (desde un clon del repositorio)
+#
+# Trae los últimos cambios de la rama actual y reinstala.
+# Si instalaste con el one-liner (sin clon), usa: gam upgrade
 
 set -e
 
@@ -19,45 +22,56 @@ echo ""
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Verificar que es un repositorio git
-if [ ! -d "$SCRIPT_DIR/.git" ]; then
-    echo -e "${RED}Error: No se encontró el repositorio git.${NC}"
-    echo "Este script solo funciona si GAM fue instalado desde el repositorio."
+if ! git -C "$SCRIPT_DIR" rev-parse --is-inside-work-tree &> /dev/null; then
+    echo -e "${RED}Error: $SCRIPT_DIR no es un clon del repositorio de GAM.${NC}"
+    echo "Si instalaste con el one-liner, actualiza con: gam upgrade"
     exit 1
 fi
 
-# Verificar conexión a internet
-if ! git ls-remote --exit-code origin HEAD &> /dev/null; then
-    echo -e "${RED}Error: No hay conexión al repositorio remoto${NC}"
+BRANCH=$(git -C "$SCRIPT_DIR" rev-parse --abbrev-ref HEAD)
+
+# Verificar conexión con el remoto
+if ! git -C "$SCRIPT_DIR" ls-remote --exit-code origin "$BRANCH" &> /dev/null; then
+    echo -e "${RED}Error: no se pudo acceder a la rama '$BRANCH' en el remoto origin${NC}"
     exit 1
 fi
 
 # Guardar cambios locales si existen
-if ! git -C "$SCRIPT_DIR" diff --quiet; then
+STASHED=false
+if ! git -C "$SCRIPT_DIR" diff --quiet || ! git -C "$SCRIPT_DIR" diff --cached --quiet; then
     echo -e "${YELLOW}Hay cambios locales en el repositorio.${NC}"
-    read -p "¿Quieres guardarlos antes de actualizar? (s/n): " save_changes
-    
+    read -p "¿Quieres guardarlos (git stash) antes de actualizar? (s/n): " save_changes
+
     if [[ "$save_changes" =~ ^[sS] ]]; then
-        timestamp=$(date +%Y%m%d_%H%M%S)
-        git -C "$SCRIPT_DIR" stash push -m "backup_$timestamp"
+        git -C "$SCRIPT_DIR" stash push -m "gam-update-$(date +%Y%m%d_%H%M%S)"
+        STASHED=true
         echo -e "${GREEN}✓ Cambios guardados temporalmente${NC}"
     fi
 fi
 
-# Obtener versión actual
-CURRENT_VERSION=$(git -C "$SCRIPT_DIR" rev-parse --short HEAD 2>/dev/null || echo "unknown")
-echo -e "${BLUE}Versión actual: ${CURRENT_VERSION}${NC}"
+# Versión actual
+CURRENT_VERSION=$(git -C "$SCRIPT_DIR" rev-parse --short HEAD)
+echo -e "${BLUE}Versión actual: ${CURRENT_VERSION} (${BRANCH})${NC}"
 
-# Actualizar repositorio
+# Actualizar repositorio (solo fast-forward: nunca crea merges)
 echo -e "${BLUE}Actualizando repositorio...${NC}"
-git -C "$SCRIPT_DIR" pull origin main
+git -C "$SCRIPT_DIR" pull --ff-only origin "$BRANCH"
 
-# Obtener nueva versión
 NEW_VERSION=$(git -C "$SCRIPT_DIR" rev-parse --short HEAD)
-echo -e "${GREEN}Nueva versión: ${NEW_VERSION}${NC}"
+if [ "$NEW_VERSION" = "$CURRENT_VERSION" ]; then
+    echo -e "${GREEN}✓ El repositorio ya estaba al día${NC}"
+else
+    echo -e "${GREEN}Nueva versión: ${NEW_VERSION}${NC}"
+fi
 
-# Reinstalar
+# Reinstalar (también si ya estaba al día: sincroniza ~/.gam con el repo)
 echo -e "${BLUE}Reinstalando GAM...${NC}"
-"$SCRIPT_DIR/install.sh"
+bash "$SCRIPT_DIR/install.sh"
+
+if [ "$STASHED" = true ]; then
+    echo -e "${YELLOW}Tus cambios locales están en el stash. Recupéralos con:${NC}"
+    echo "  git -C \"$SCRIPT_DIR\" stash pop"
+fi
 
 echo ""
 echo -e "${GREEN}✓ Actualización completada${NC}"

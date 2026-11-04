@@ -4,7 +4,7 @@ _gam_completion() {
     local cur prev words cword
     _init_completion || return
 
-    local commands="add list update remove check test clone switch use export import help"
+    local commands="add list update remove check test clone switch use export import upgrade help"
     
     if [[ "$cur" == -* ]]; then
         case "${words[1]}" in

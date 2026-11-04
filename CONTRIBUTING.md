@@ -28,6 +28,7 @@ lib/
 ├── ssh.sh                   # Generación de claves SSH, configuración, test
 ├── account.sh               # add, list, update, remove, test, clone, export, import
 ├── check.sh                 # check: diagnóstico y reparación (--fix)
+├── upgrade.sh               # upgrade: actualiza GAM a la última versión
 └── git-config.sh            # Perfiles Git, switch, includeIf por carpeta
 templates/
 ├── ssh-config.template      # Template para ~/.ssh/config
@@ -36,7 +37,7 @@ completions/
 └── gam-completion.bash      # Autocompletado bash
 install.sh                   # Instalador (local y remoto)
 uninstall.sh                 # Desinstalador
-update.sh                    # Actualizador
+update.sh                    # Actualizador desde un clon (git pull + install.sh)
 ```
 
 ## Convenciones

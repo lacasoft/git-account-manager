@@ -32,6 +32,7 @@ source "$LIB_DIR/ssh.sh"
 source "$LIB_DIR/account.sh"
 source "$LIB_DIR/git-config.sh"
 source "$LIB_DIR/check.sh"
+source "$LIB_DIR/upgrade.sh"
 
 # Mostrar ayuda
 show_help() {
@@ -62,6 +63,7 @@ ${CYAN}COMANDOS${NC}
   ${YELLOW}use${NC}     <carpeta>                           📂  Git automático por carpeta
   ${YELLOW}export${NC}                                      💾  Exportar configuración
   ${YELLOW}import${NC}  <archivo>                           📤  Importar configuración
+  ${YELLOW}upgrade${NC}                                     ⬆️   Actualizar GAM
   ${YELLOW}help${NC}                                        ❓  Mostrar esta ayuda
 
 ${CYAN}EJEMPLOS${NC}
@@ -121,6 +123,9 @@ main() {
             ;;
         import)
             import_config "$@"
+            ;;
+        upgrade)
+            upgrade_gam
             ;;
         help|--help|-h)
             show_help

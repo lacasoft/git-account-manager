@@ -85,7 +85,7 @@ $ gam clone work company/project
 **One-liner** (downloads and installs automatically):
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/lacasoft/git-account-manager/main/install.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/lacasoft/git-account-manager/HEAD/install.sh)
 ```
 
 **From the repo** (if you prefer to review the code first):
@@ -97,6 +97,25 @@ bash install.sh
 ```
 
 Installs `gam` to `/usr/local/bin/`, deploys libraries to `~/.gam/`, and sets up shell autocompletion.
+
+### ⬆️ Updating
+
+If GAM is already installed, no matter how you installed it:
+
+```bash
+gam upgrade
+```
+
+It compares your version with the latest published one and, if there's a newer one, downloads and reinstalls it. Your accounts, keys, and configuration are left untouched.
+
+If you work from a clone of the repo, `update.sh` runs `git pull` on the current branch and reinstalls:
+
+```bash
+cd git-account-manager
+bash update.sh
+```
+
+> Older versions don't have `gam upgrade`. The first time, update with the one-liner above or with `bash install.sh` from the repo. Re-running the installer always updates.
 
 > **macOS**: GAM auto-detects your system and configures `ssh-add --apple-use-keychain`, `UseKeychain` in SSH config, and uses `pbcopy` to copy keys to the clipboard.
 
@@ -115,6 +134,7 @@ gam use ~/code/work              # 📂 Auto-configure Git per folder
 gam switch work                  # 🔄 Switch global Git config
 gam export > backup.txt          # 💾 Export configuration
 gam import backup.txt            # 📤 Restore configuration
+gam upgrade                      # ⬆️  Update GAM to the latest version
 ```
 
 ---
@@ -134,6 +154,7 @@ gam import backup.txt            # 📤 Restore configuration
 | `use` | `gam use <folder>` | 📂 Auto-configure Git per folder |
 | `export` | `gam export` | 💾 Export configuration |
 | `import` | `gam import <file>` | 📤 Restore configuration |
+| `upgrade` | `gam upgrade` | ⬆️ Update GAM to the latest version |
 
 ---
 
